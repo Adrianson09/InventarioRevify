@@ -1,12 +1,14 @@
 const express = require('express');
 const sql = require('mssql');
+const multer = require('multer');
+const XLSX = require('xlsx');
 require('dotenv').config();
 const cors = require('cors');
 const { swaggerMiddleware, swaggerSetup } = require('./swagger'); // Importa la configuración de Swagger
 
 const app = express();
 app.use(express.json()); // Para analizar el cuerpo de las solicitudes en formato JSON
-
+const upload = multer({ dest: 'uploads/' });
 const port = process.env.PORT || 3000;
 
 // Configuración de CORS
@@ -38,12 +40,85 @@ sql.connect(dbConfig).then(pool => {
     console.error('Error al conectar a SQL Server:', error);
 });
 
+/**Carga masiva de datos de inventario desde un archivo XLSX.
+ * @swagger
+ * /upload:
+ *   post:
+ *     summary: Carga masiva de datos de inventario desde un archivo XLSX.
+ *     description: Este endpoint permite cargar un archivo XLSX con los datos del inventario IPTV y agregarlos a la base de datos.
+ *     tags: [Carga de Inventario]
+ *     consumes:
+ *       - multipart/form-data
+ *     parameters:
+ *       - in: formData
+ *         name: file
+ *         type: file
+ *         description: Archivo XLSX a cargar.
+ *         required: true
+ *     responses:
+ *       200:
+ *         description: Datos cargados exitosamente.
+ *       400:
+ *         description: No se ha proporcionado ningún archivo o el archivo es inválido.
+ *       500:
+ *         description: Error del servidor al procesar el archivo.
+ */
+
+// Upload de archivo
+app.post('/upload', upload.single('file'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).send('No file uploaded.');
+    }
+
+    try {
+        // Leer el archivo XLSX
+        const workbook = XLSX.readFile(req.file.path);
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const data = XLSX.utils.sheet_to_json(sheet);
+
+        // Conectar a la base de datos
+        let pool = await sql.connect(dbConfig);
+
+        // Insertar los datos en la base de datos
+        for (const row of data) {
+            await pool.request()
+                .input('Proyecto', sql.NVarChar, row.Proyecto)
+                .input('Estatus', sql.NVarChar, row.Estatus)
+                .input('Contrato_Liberty', sql.NVarChar, row.Contrato_Liberty)
+                .input('OrdenDeEntrega', sql.NVarChar, row.OrdenDeEntrega)
+                .input('FechaDeDespacho', sql.Date, row.FechaDeDespacho)
+                .input('CodigoClienteBlueSAT', sql.NVarChar, row.CodigoClienteBlueSAT)
+                .input('NombreContratoSolicitado', sql.NVarChar, row.NombreContratoSolicitado)
+                .input('TipoContratacion', sql.NVarChar, row.TipoContratacion)
+                .input('EstatusContrato', sql.NVarChar, row.EstatusContrato)
+                .input('CodigoCliente', sql.NVarChar, row.CodigoCliente)
+                .input('RazonSocial', sql.NVarChar, row.RazonSocial)
+                .input('UbicacionFinal', sql.NVarChar, row.UbicacionFinal)
+                .input('TiqueteDeEntrega', sql.NVarChar, row.TiqueteDeEntrega)
+                .input('SERIAL', sql.NVarChar, row.SERIAL)
+                .input('MAC', sql.NVarChar, row.MAC)
+                .input('Observaciones', sql.NVarChar, row.Observaciones)
+                .input('ContratoFacturacion', sql.NVarChar, row.ContratoFacturacion)
+                .query('INSERT INTO InventarioIPTV (Proyecto, Estatus, Contrato_Liberty, OrdenDeEntrega, FechaDeDespacho, CodigoClienteBlueSAT, NombreContratoSolicitado, TipoContratacion, EstatusContrato, CodigoCliente, RazonSocial, UbicacionFinal, TiqueteDeEntrega, SERIAL, MAC, Observaciones, ContratoFacturacion) VALUES (@Proyecto, @Estatus, @Contrato_Liberty, @OrdenDeEntrega, @FechaDeDespacho, @CodigoClienteBlueSAT, @NombreContratoSolicitado, @TipoContratacion, @EstatusContrato, @CodigoCliente, @RazonSocial, @UbicacionFinal, @TiqueteDeEntrega, @SERIAL, @MAC, @Observaciones, @ContratoFacturacion)');
+        }
+
+        res.status(200).send('Datos cargados exitosamente.');
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Error en el servidor.');
+    }
+});
+
+
+
 /** Obtiene el inventario de IPTV
  * @swagger
  * /inventario:
  *   get:
  *     summary: Obtiene el inventario de IPTV
  *     description: Retorna una lista de todas las cajas IPTV con sus detalles en el inventario.
+ *     tags: [Inventario]
  *     responses:
  *       200:
  *         description: Lista de cajas IPTV

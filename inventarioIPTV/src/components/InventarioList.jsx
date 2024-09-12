@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 
 const InventarioList = () => {
     const [inventario, setInventario] = useState([]);
@@ -31,6 +32,14 @@ const InventarioList = () => {
         item.SERIAL.toLowerCase().includes(filterInput.toLowerCase())
     );
 
+    // Función para descargar el archivo XLSX
+    const handleDownload = () => {
+        const ws = XLSX.utils.json_to_sheet(inventario);  // Convertir los datos a una hoja de cálculo
+        const wb = XLSX.utils.book_new();  // Crear un nuevo libro de trabajo
+        XLSX.utils.book_append_sheet(wb, ws, "Inventario");  // Agregar la hoja de trabajo
+        XLSX.writeFile(wb, "inventario.xlsx");  // Descargar el archivo
+    };
+
     return (
         <div className="container mx-auto p-6 bg-gray-800 text-white min-h-screen">
             <h1 className="text-3xl font-bold mb-6 text-center">Lista de Inventario IPTV</h1>
@@ -41,6 +50,12 @@ const InventarioList = () => {
                 placeholder="Buscar por SERIAL..."
                 className="mb-6 p-2 border rounded bg-gray-700 text-white placeholder-gray-400 block mx-auto"
             />
+            <button
+                onClick={handleDownload}
+                className="mb-6 px-4 py-2 bg-green-500 text-white font-semibold rounded-md hover:bg-green-600 transition-transform duration-200 transform hover:scale-105 block mx-auto"
+            >
+                Descargar XLSX
+            </button>
             {loading ? (
                 <p className="text-center">Cargando...</p>
             ) : error ? (
@@ -50,6 +65,7 @@ const InventarioList = () => {
                     <table className="min-w-full bg-gray-900 border border-gray-700 rounded-lg mx-auto">
                         <thead>
                             <tr className="bg-gray-800 border-b border-gray-700">
+                                {/* Cabezas de tabla */}
                                 <th className="px-4 py-2 text-left">Proyecto</th>
                                 <th className="px-4 py-2 text-left">Estatus</th>
                                 <th className="px-4 py-2 text-left">Contrato Liberty</th>

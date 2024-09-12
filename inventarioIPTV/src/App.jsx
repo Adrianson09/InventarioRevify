@@ -6,6 +6,7 @@ import DeleteInventario from './components/DeleteInventario';
 import InventarioList from './components/InventarioList';
 import Layout from './components/Layout';
 import UpdateInventario from './components/UpdateInventario';
+import UploadFile from './components/UploadFile';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
             <Route path="/add" element={<AddInventario />} />
             <Route path="/update" element={<UpdateInventario />} />
             <Route path="/delete" element={<DeleteInventario />} />
+            <Route path="/upload" element={<UploadFile />} />
           </Routes>
         </div>
       </Layout>
