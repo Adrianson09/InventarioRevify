@@ -1,0 +1,19 @@
+/* App.css */
+
+/* Estilos generales */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #1f2937; /* Color de fondo oscuro */
+    color: #f9fafb; /* Color de texto claro */
+  }
+  
+  .container {
+    max-width: 1200px;
+  }
+  
+  h1, h2, h3 {
+    color: #e5e7eb; /* Colores de encabezado */
+  }
+  
+  /* Puedes añadir más estilos específicos aquí */
+  
