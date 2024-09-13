@@ -29,7 +29,9 @@ const InventarioList = () => {
 
     // Filtra los datos basados en el campo "SERIAL"
     const filteredData = inventario.filter(item =>
-        item.SERIAL.toLowerCase().includes(filterInput.toLowerCase())
+        item.SERIAL.toLowerCase().includes(filterInput.toLowerCase()) ||
+        item.CodigoCliente.toLowerCase().includes(filterInput.toLowerCase()) ||
+        item.RazonSocial.toLowerCase().includes(filterInput.toLowerCase())
     );
 
     // Función para descargar el archivo XLSX
@@ -47,7 +49,7 @@ const InventarioList = () => {
                 type="text"
                 value={filterInput}
                 onChange={handleFilterChange}
-                placeholder="Buscar por SERIAL..."
+                placeholder="Buscar por SERIAL, Código de Cliente o Razón Social..."
                 className="mb-6 p-2 border rounded bg-gray-700 text-white placeholder-gray-400 block mx-auto"
             />
             <button
@@ -69,8 +71,6 @@ const InventarioList = () => {
                                 <th className="px-4 py-2 text-left">Proyecto</th>
                                 <th className="px-4 py-2 text-left">Estatus</th>
                                 <th className="px-4 py-2 text-left">Contrato Liberty</th>
-                                <th className="px-4 py-2 text-left">Orden de Entrega</th>
-                                <th className="px-4 py-2 text-left">Fecha de Despacho</th>
                                 <th className="px-4 py-2 text-left">Código Cliente BlueSAT</th>
                                 <th className="px-4 py-2 text-left">Nombre Contrato Solicitado</th>
                                 <th className="px-4 py-2 text-left">Tipo de Contratación</th>
@@ -83,6 +83,18 @@ const InventarioList = () => {
                                 <th className="px-4 py-2 text-left">MAC</th>
                                 <th className="px-4 py-2 text-left">Observaciones</th>
                                 <th className="px-4 py-2 text-left">Contrato Facturación</th>
+                                <th className="px-4 py-2 text-left">Tipo de Servicio</th>
+                                <th className="px-4 py-2 text-left">Cantidad de Cajas Revify</th>
+                                <th className="px-4 py-2 text-left">Precio Principal Revify</th>
+                                <th className="px-4 py-2 text-left">Precio Adicional Revify</th>
+                                <th className="px-4 py-2 text-left">Precio Principal Liberty</th>
+                                <th className="px-4 py-2 text-left">Precio Adicional Liberty</th>
+                                <th className="px-4 py-2 text-left">Precio Convertidor Principal Liberty</th>
+                                <th className="px-4 py-2 text-left">Precio Convertidor Adicional Liberty</th>
+                                <th className="px-4 py-2 text-left">Total del Contrato</th>
+                                <th className="px-4 py-2 text-left">Usuario Modificador</th>
+                                <th className="px-4 py-2 text-left">Fecha de Creación</th>
+                                <th className="px-4 py-2 text-left">Usuario Creación</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -91,8 +103,6 @@ const InventarioList = () => {
                                     <td className="px-4 py-2">{item.Proyecto}</td>
                                     <td className="px-4 py-2">{item.Estatus}</td>
                                     <td className="px-4 py-2">{item.Contrato_Liberty}</td>
-                                    <td className="px-4 py-2">{item.OrdenDeEntrega}</td>
-                                    <td className="px-4 py-2">{item.FechaDeDespacho}</td>
                                     <td className="px-4 py-2">{item.CodigoClienteBlueSAT}</td>
                                     <td className="px-4 py-2">{item.NombreContratoSolicitado}</td>
                                     <td className="px-4 py-2">{item.TipoContratacion}</td>
@@ -105,6 +115,18 @@ const InventarioList = () => {
                                     <td className="px-4 py-2">{item.MAC}</td>
                                     <td className="px-4 py-2">{item.Observaciones}</td>
                                     <td className="px-4 py-2">{item.ContratoFacturacion}</td>
+                                    <td className="px-4 py-2">{item.tipoServicio}</td>
+                                    <td className="px-4 py-2">{item.CantidadDeCajasColocadasRevify}</td>
+                                    <td className="px-4 py-2">{item.PrecioIPTVPrincipalRevify}</td>
+                                    <td className="px-4 py-2">{item.PrecioIPTVAdicionalRevify}</td>
+                                    <td className="px-4 py-2">{item.PrecioIPTVPrincipalLiberty}</td>
+                                    <td className="px-4 py-2">{item.PrecioIPTVAdicionalLiberty}</td>
+                                    <td className="px-4 py-2">{item.PreciodeConvertidorPrincipalLiberty}</td>
+                                    <td className="px-4 py-2">{item.PreciodeConvertidorAdicionalLiberty}</td>
+                                    <td className="px-4 py-2">{item.TotaldelContrato}</td>
+                                    <td className="px-4 py-2">{item.usuario_modificador}</td>
+                                    <td className="px-4 py-2">{item.fecha_creacion}</td>
+                                    <td className="px-4 py-2">{item.usuario_creacion}</td>
                                 </tr>
                             ))}
                         </tbody>

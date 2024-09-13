@@ -2,9 +2,11 @@ const express = require('express');
 const sql = require('mssql');
 const multer = require('multer');
 const XLSX = require('xlsx');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const cors = require('cors');
 const { swaggerMiddleware, swaggerSetup } = require('./swagger'); // Importa la configuración de Swagger
+const { router: authRoutes, authenticateToken } = require('./authRoutes'); // Importa las rutas de autenticación
 
 const app = express();
 app.use(express.json()); // Para analizar el cuerpo de las solicitudes en formato JSON
@@ -23,7 +25,6 @@ const dbConfig = {
     options: {
         encrypt: true, // Si estás utilizando Azure, de lo contrario, puedes poner false
         trustServerCertificate: true, // True si estás utilizando SQL Server local
-        encrypt: false
     }
 };
 
@@ -36,9 +37,32 @@ sql.connect(dbConfig).then(pool => {
     // Usa Swagger UI
     app.use('/api-docs', swaggerMiddleware, swaggerSetup);
 
-}).catch(error => {
-    console.error('Error al conectar a SQL Server:', error);
-});
+    // Usa las rutas de autenticación
+    app.use('/auth', authRoutes);
+
+    // Ejemplo de endpoint protegido
+    app.get('/protected', authenticateToken, (req, res) => {
+        res.send('Acceso concedido a la ruta protegida');
+    });
+
+    // Endpoint para obtener los detalles del usuario autenticado
+    app.get('/auth/me', authenticateToken, async (req, res) => {
+        try {
+            const pool = await sql.connect(dbConfig);
+            const result = await pool.request()
+                .input('userId', sql.Int, req.user.id)
+                .query('SELECT id, nombre_usuario, email, rol FROM usuarioInventario WHERE id = @userId');
+
+            if (result.recordset.length === 0) {
+                return res.status(404).send('Usuario no encontrado');
+            }
+
+            res.json(result.recordset[0]);
+        } catch (err) {
+            console.error(err);
+            res.status(500).send('Error en el servidor');
+        }
+    });
 
 /**Carga masiva de datos de inventario desde un archivo XLSX.
  * @swagger
@@ -65,6 +89,7 @@ sql.connect(dbConfig).then(pool => {
  */
 
 // Upload de archivo
+// Upload de archivo
 app.post('/upload', upload.single('file'), async (req, res) => {
     if (!req.file) {
         return res.status(400).send('No file uploaded.');
@@ -86,8 +111,6 @@ app.post('/upload', upload.single('file'), async (req, res) => {
                 .input('Proyecto', sql.NVarChar, row.Proyecto)
                 .input('Estatus', sql.NVarChar, row.Estatus)
                 .input('Contrato_Liberty', sql.NVarChar, row.Contrato_Liberty)
-                .input('OrdenDeEntrega', sql.NVarChar, row.OrdenDeEntrega)
-                .input('FechaDeDespacho', sql.Date, row.FechaDeDespacho)
                 .input('CodigoClienteBlueSAT', sql.NVarChar, row.CodigoClienteBlueSAT)
                 .input('NombreContratoSolicitado', sql.NVarChar, row.NombreContratoSolicitado)
                 .input('TipoContratacion', sql.NVarChar, row.TipoContratacion)
@@ -100,7 +123,68 @@ app.post('/upload', upload.single('file'), async (req, res) => {
                 .input('MAC', sql.NVarChar, row.MAC)
                 .input('Observaciones', sql.NVarChar, row.Observaciones)
                 .input('ContratoFacturacion', sql.NVarChar, row.ContratoFacturacion)
-                .query('INSERT INTO InventarioIPTV (Proyecto, Estatus, Contrato_Liberty, OrdenDeEntrega, FechaDeDespacho, CodigoClienteBlueSAT, NombreContratoSolicitado, TipoContratacion, EstatusContrato, CodigoCliente, RazonSocial, UbicacionFinal, TiqueteDeEntrega, SERIAL, MAC, Observaciones, ContratoFacturacion) VALUES (@Proyecto, @Estatus, @Contrato_Liberty, @OrdenDeEntrega, @FechaDeDespacho, @CodigoClienteBlueSAT, @NombreContratoSolicitado, @TipoContratacion, @EstatusContrato, @CodigoCliente, @RazonSocial, @UbicacionFinal, @TiqueteDeEntrega, @SERIAL, @MAC, @Observaciones, @ContratoFacturacion)');
+                .input('tipoServicio', sql.NVarChar, row.tipoServicio)
+                .input('CantidadDeCajasColocadasRevify', sql.Int, row.CantidadDeCajasColocadasRevify)
+                .input('PrecioIPTVPrincipalRevify', sql.Decimal(18, 2), row.PrecioIPTVPrincipalRevify)
+                .input('PrecioIPTVAdicionalRevify', sql.Decimal(18, 2), row.PrecioIPTVAdicionalRevify)
+                .input('PrecioIPTVPrincipalLiberty', sql.Decimal(18, 2), row.PrecioIPTVPrincipalLiberty)
+                .input('PrecioIPTVAdicionalLiberty', sql.Decimal(18, 2), row.PrecioIPTVAdicionalLiberty)
+                .input('PreciodeConvertidorPrincipalLiberty', sql.Decimal(18, 2), row.PreciodeConvertidorPrincipalLiberty)
+                .input('PreciodeConvertidorAdicionalLiberty', sql.Decimal(18, 2), row.PreciodeConvertidorAdicionalLiberty)
+                .input('TotaldelContrato', sql.Decimal(18, 2), row.TotaldelContrato)
+                .query(`
+                    INSERT INTO InventarioIPTV (
+                        Proyecto,
+                        Estatus,
+                        Contrato_Liberty,
+                        CodigoClienteBlueSAT,
+                        NombreContratoSolicitado,
+                        TipoContratacion,
+                        EstatusContrato,
+                        CodigoCliente,
+                        RazonSocial,
+                        UbicacionFinal,
+                        TiqueteDeEntrega,
+                        SERIAL,
+                        MAC,
+                        Observaciones,
+                        ContratoFacturacion,
+                        tipoServicio,
+                        CantidadDeCajasColocadasRevify,
+                        PrecioIPTVPrincipalRevify,
+                        PrecioIPTVAdicionalRevify,
+                        PrecioIPTVPrincipalLiberty,
+                        PrecioIPTVAdicionalLiberty,
+                        PreciodeConvertidorPrincipalLiberty,
+                        PreciodeConvertidorAdicionalLiberty,
+                        TotaldelContrato
+                    ) VALUES (
+                        @Proyecto,
+                        @Estatus,
+                        @Contrato_Liberty,
+                        @CodigoClienteBlueSAT,
+                        @NombreContratoSolicitado,
+                        @TipoContratacion,
+                        @EstatusContrato,
+                        @CodigoCliente,
+                        @RazonSocial,
+                        @UbicacionFinal,
+                        @TiqueteDeEntrega,
+                        @SERIAL,
+                        @MAC,
+                        @Observaciones,
+                        @ContratoFacturacion,
+                        @tipoServicio,
+                        @CantidadDeCajasColocadasRevify,
+                        @PrecioIPTVPrincipalRevify,
+                        @PrecioIPTVAdicionalRevify,
+                        @PrecioIPTVPrincipalLiberty,
+                        @PrecioIPTVAdicionalLiberty,
+                        @PreciodeConvertidorPrincipalLiberty,
+                        @PreciodeConvertidorAdicionalLiberty,
+                        @TotaldelContrato
+                    )
+                `);
         }
 
         res.status(200).send('Datos cargados exitosamente.');
@@ -112,7 +196,8 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 
 
 
-/** Obtiene el inventario de IPTV
+
+/**
  * @swagger
  * /inventario:
  *   get:
@@ -138,13 +223,6 @@ app.post('/upload', upload.single('file'), async (req, res) => {
  *                   Contrato_Liberty:
  *                     type: string
  *                     description: El contrato asociado de Liberty.
- *                   OrdenDeEntrega:
- *                     type: string
- *                     description: El número de orden de entrega.
- *                   FechaDeDespacho:
- *                     type: string
- *                     format: date
- *                     description: La fecha de despacho.
  *                   CodigoClienteBlueSAT:
  *                     type: string
  *                     description: Código del cliente de BlueSAT.
@@ -181,10 +259,57 @@ app.post('/upload', upload.single('file'), async (req, res) => {
  *                   ContratoFacturacion:
  *                     type: string
  *                     description: El contrato de facturación asociado.
+ *                   tipoServicio:
+ *                     type: string
+ *                     description: El tipo de servicio proporcionado.
+ *                   CantidadDeCajasColocadasRevify:
+ *                     type: integer
+ *                     description: La cantidad de cajas colocadas por Revify.
+ *                   PrecioIPTVPrincipalRevify:
+ *                     type: number
+ *                     format: float
+ *                     description: El precio del servicio IPTV principal por Revify.
+ *                   PrecioIPTVAdicionalRevify:
+ *                     type: number
+ *                     format: float
+ *                     description: El precio del servicio IPTV adicional por Revify.
+ *                   PrecioIPTVPrincipalLiberty:
+ *                     type: number
+ *                     format: float
+ *                     description: El precio del servicio IPTV principal por Liberty.
+ *                   PrecioIPTVAdicionalLiberty:
+ *                     type: number
+ *                     format: float
+ *                     description: El precio del servicio IPTV adicional por Liberty.
+ *                   PreciodeConvertidorPrincipalLiberty:
+ *                     type: number
+ *                     format: float
+ *                     description: El precio del convertidor principal por Liberty.
+ *                   PreciodeConvertidorAdicionalLiberty:
+ *                     type: number
+ *                     format: float
+ *                     description: El precio del convertidor adicional por Liberty.
+ *                   TotaldelContrato:
+ *                     type: number
+ *                     format: float
+ *                     description: El monto total del contrato.
+ *                   usuario_modificador:
+ *                     type: string
+ *                     description: El usuario que realizó la última modificación.
+ *                   fecha_creacion:
+ *                     type: string
+ *                     format: date-time
+ *                     description: Fecha de creación del registro.
+ *                   usuario_creacion:
+ *                     type: string
+ *                     description: El usuario que creó el registro.
+ *                   id:
+ *                     type: integer
+ *                     description: ID único del registro.
  *       500:
  *         description: Error en el servidor
  */
-// Obtiene el inventario de IPTV
+
 app.get('/inventario', async (req, res) => {
     try {
         let pool = await sql.connect(dbConfig);
@@ -198,7 +323,7 @@ app.get('/inventario', async (req, res) => {
 
 
 
-/**Inserta una nueva caja en el inventario
+/** Inserta una nueva caja en el inventario
  * @swagger
  * /inventario:
  *   post:
@@ -220,13 +345,6 @@ app.get('/inventario', async (req, res) => {
  *               Contrato_Liberty:
  *                 type: string
  *                 description: El contrato asociado de Liberty.
- *               OrdenDeEntrega:
- *                 type: string
- *                 description: El número de orden de entrega.
- *               FechaDeDespacho:
- *                 type: string
- *                 format: date
- *                 description: La fecha de despacho.
  *               CodigoClienteBlueSAT:
  *                 type: string
  *                 description: Código del cliente de BlueSAT.
@@ -263,6 +381,40 @@ app.get('/inventario', async (req, res) => {
  *               ContratoFacturacion:
  *                 type: string
  *                 description: El contrato de facturación asociado.
+ *               tipoServicio:
+ *                 type: string
+ *                 description: Tipo de servicio.
+ *               CantidadDeCajasColocadasRevify:
+ *                 type: integer
+ *                 description: Cantidad de cajas colocadas (Revify).
+ *               PrecioIPTVPrincipalRevify:
+ *                 type: number
+ *                 format: float
+ *                 description: Precio IPTV principal (Revify).
+ *               PrecioIPTVAdicionalRevify:
+ *                 type: number
+ *                 format: float
+ *                 description: Precio IPTV adicional (Revify).
+ *               PrecioIPTVPrincipalLiberty:
+ *                 type: number
+ *                 format: float
+ *                 description: Precio IPTV principal (Liberty).
+ *               PrecioIPTVAdicionalLiberty:
+ *                 type: number
+ *                 format: float
+ *                 description: Precio IPTV adicional (Liberty).
+ *               PreciodeConvertidorPrincipalLiberty:
+ *                 type: number
+ *                 format: float
+ *                 description: Precio del convertidor principal (Liberty).
+ *               PreciodeConvertidorAdicionalLiberty:
+ *                 type: number
+ *                 format: float
+ *                 description: Precio del convertidor adicional (Liberty).
+ *               TotaldelContrato:
+ *                 type: number
+ *                 format: float
+ *                 description: Total del contrato.
  *     responses:
  *       201:
  *         description: Caja IPTV creada exitosamente
@@ -271,13 +423,34 @@ app.get('/inventario', async (req, res) => {
  *       500:
  *         description: Error en el servidor
  */
+
 // Insert inventario
 app.post('/inventario', async (req, res) => {
     const {
-        Proyecto, Estatus, Contrato_Liberty, OrdenDeEntrega, FechaDeDespacho,
-        CodigoClienteBlueSAT, NombreContratoSolicitado, TipoContratacion, EstatusContrato,
-        CodigoCliente, RazonSocial, UbicacionFinal, TiqueteDeEntrega, SERIAL, MAC,
-        Observaciones, ContratoFacturacion
+        Proyecto,
+        Estatus,
+        Contrato_Liberty,
+        CodigoClienteBlueSAT,
+        NombreContratoSolicitado,
+        TipoContratacion,
+        EstatusContrato,
+        CodigoCliente,
+        RazonSocial,
+        UbicacionFinal,
+        TiqueteDeEntrega,
+        SERIAL,
+        MAC,
+        Observaciones,
+        ContratoFacturacion,
+        tipoServicio,
+        CantidadDeCajasColocadasRevify,
+        PrecioIPTVPrincipalRevify,
+        PrecioIPTVAdicionalRevify,
+        PrecioIPTVPrincipalLiberty,
+        PrecioIPTVAdicionalLiberty,
+        PreciodeConvertidorPrincipalLiberty,
+        PreciodeConvertidorAdicionalLiberty,
+        TotaldelContrato
     } = req.body;
 
     try {
@@ -286,8 +459,6 @@ app.post('/inventario', async (req, res) => {
             .input('Proyecto', sql.NVarChar, Proyecto)
             .input('Estatus', sql.NVarChar, Estatus)
             .input('Contrato_Liberty', sql.NVarChar, Contrato_Liberty)
-            .input('OrdenDeEntrega', sql.NVarChar, OrdenDeEntrega)
-            .input('FechaDeDespacho', sql.Date, FechaDeDespacho)
             .input('CodigoClienteBlueSAT', sql.NVarChar, CodigoClienteBlueSAT)
             .input('NombreContratoSolicitado', sql.NVarChar, NombreContratoSolicitado)
             .input('TipoContratacion', sql.NVarChar, TipoContratacion)
@@ -300,18 +471,67 @@ app.post('/inventario', async (req, res) => {
             .input('MAC', sql.NVarChar, MAC)
             .input('Observaciones', sql.NVarChar, Observaciones)
             .input('ContratoFacturacion', sql.NVarChar, ContratoFacturacion)
+            .input('tipoServicio', sql.NVarChar, tipoServicio)
+            .input('CantidadDeCajasColocadasRevify', sql.Int, CantidadDeCajasColocadasRevify)
+            .input('PrecioIPTVPrincipalRevify', sql.Decimal(18, 2), PrecioIPTVPrincipalRevify)
+            .input('PrecioIPTVAdicionalRevify', sql.Decimal(18, 2), PrecioIPTVAdicionalRevify)
+            .input('PrecioIPTVPrincipalLiberty', sql.Decimal(18, 2), PrecioIPTVPrincipalLiberty)
+            .input('PrecioIPTVAdicionalLiberty', sql.Decimal(18, 2), PrecioIPTVAdicionalLiberty)
+            .input('PreciodeConvertidorPrincipalLiberty', sql.Decimal(18, 2), PreciodeConvertidorPrincipalLiberty)
+            .input('PreciodeConvertidorAdicionalLiberty', sql.Decimal(18, 2), PreciodeConvertidorAdicionalLiberty)
+            .input('TotaldelContrato', sql.Decimal(18, 2), TotaldelContrato)
             .query(`
                 INSERT INTO InventarioIPTV (
-                    Proyecto, Estatus, Contrato_Liberty, OrdenDeEntrega, FechaDeDespacho,
-                    CodigoClienteBlueSAT, NombreContratoSolicitado, TipoContratacion, EstatusContrato,
-                    CodigoCliente, RazonSocial, UbicacionFinal, TiqueteDeEntrega, SERIAL, MAC,
-                    Observaciones, ContratoFacturacion
+                    Proyecto,
+                    Estatus,
+                    Contrato_Liberty,
+                    CodigoClienteBlueSAT,
+                    NombreContratoSolicitado,
+                    TipoContratacion,
+                    EstatusContrato,
+                    CodigoCliente,
+                    RazonSocial,
+                    UbicacionFinal,
+                    TiqueteDeEntrega,
+                    SERIAL,
+                    MAC,
+                    Observaciones,
+                    ContratoFacturacion,
+                    tipoServicio,
+                    CantidadDeCajasColocadasRevify,
+                    PrecioIPTVPrincipalRevify,
+                    PrecioIPTVAdicionalRevify,
+                    PrecioIPTVPrincipalLiberty,
+                    PrecioIPTVAdicionalLiberty,
+                    PreciodeConvertidorPrincipalLiberty,
+                    PreciodeConvertidorAdicionalLiberty,
+                    TotaldelContrato
                 )
                 VALUES (
-                    @Proyecto, @Estatus, @Contrato_Liberty, @OrdenDeEntrega, @FechaDeDespacho,
-                    @CodigoClienteBlueSAT, @NombreContratoSolicitado, @TipoContratacion, @EstatusContrato,
-                    @CodigoCliente, @RazonSocial, @UbicacionFinal, @TiqueteDeEntrega, @SERIAL, @MAC,
-                    @Observaciones, @ContratoFacturacion
+                    @Proyecto,
+                    @Estatus,
+                    @Contrato_Liberty,
+                    @CodigoClienteBlueSAT,
+                    @NombreContratoSolicitado,
+                    @TipoContratacion,
+                    @EstatusContrato,
+                    @CodigoCliente,
+                    @RazonSocial,
+                    @UbicacionFinal,
+                    @TiqueteDeEntrega,
+                    @SERIAL,
+                    @MAC,
+                    @Observaciones,
+                    @ContratoFacturacion,
+                    @tipoServicio,
+                    @CantidadDeCajasColocadasRevify,
+                    @PrecioIPTVPrincipalRevify,
+                    @PrecioIPTVAdicionalRevify,
+                    @PrecioIPTVPrincipalLiberty,
+                    @PrecioIPTVAdicionalLiberty,
+                    @PreciodeConvertidorPrincipalLiberty,
+                    @PreciodeConvertidorAdicionalLiberty,
+                    @TotaldelContrato
                 )
             `);
         res.status(201).send('Caja IPTV creada exitosamente');
@@ -323,7 +543,7 @@ app.post('/inventario', async (req, res) => {
 
 
 
-/**Actualiza una caja en el inventario
+/** Actualiza una caja en el inventario
  * @swagger
  * /inventario/{serial}:
  *   put:
@@ -352,13 +572,6 @@ app.post('/inventario', async (req, res) => {
  *               Contrato_Liberty:
  *                 type: string
  *                 description: El contrato asociado de Liberty.
- *               OrdenDeEntrega:
- *                 type: string
- *                 description: El número de orden de entrega.
- *               FechaDeDespacho:
- *                 type: string
- *                 format: date
- *                 description: La fecha de despacho.
  *               CodigoClienteBlueSAT:
  *                 type: string
  *                 description: Código del cliente de BlueSAT.
@@ -392,6 +605,40 @@ app.post('/inventario', async (req, res) => {
  *               ContratoFacturacion:
  *                 type: string
  *                 description: El contrato de facturación asociado.
+ *               tipoServicio:
+ *                 type: string
+ *                 description: Tipo de servicio.
+ *               CantidadDeCajasColocadasRevify:
+ *                 type: integer
+ *                 description: Cantidad de cajas colocadas (Revify).
+ *               PrecioIPTVPrincipalRevify:
+ *                 type: number
+ *                 format: float
+ *                 description: Precio IPTV principal (Revify).
+ *               PrecioIPTVAdicionalRevify:
+ *                 type: number
+ *                 format: float
+ *                 description: Precio IPTV adicional (Revify).
+ *               PrecioIPTVPrincipalLiberty:
+ *                 type: number
+ *                 format: float
+ *                 description: Precio IPTV principal (Liberty).
+ *               PrecioIPTVAdicionalLiberty:
+ *                 type: number
+ *                 format: float
+ *                 description: Precio IPTV adicional (Liberty).
+ *               PreciodeConvertidorPrincipalLiberty:
+ *                 type: number
+ *                 format: float
+ *                 description: Precio del convertidor principal (Liberty).
+ *               PreciodeConvertidorAdicionalLiberty:
+ *                 type: number
+ *                 format: float
+ *                 description: Precio del convertidor adicional (Liberty).
+ *               TotaldelContrato:
+ *                 type: number
+ *                 format: float
+ *                 description: Total del contrato.
  *     responses:
  *       200:
  *         description: Caja IPTV actualizada exitosamente
@@ -402,14 +649,34 @@ app.post('/inventario', async (req, res) => {
  *       500:
  *         description: Error en el servidor
  */
+ 
 // Actualiza Inventario
 app.put('/inventario/:serial', async (req, res) => {
     const { serial } = req.params;
     const {
-        Proyecto, Estatus, Contrato_Liberty, OrdenDeEntrega, FechaDeDespacho,
-        CodigoClienteBlueSAT, NombreContratoSolicitado, TipoContratacion, EstatusContrato,
-        CodigoCliente, RazonSocial, UbicacionFinal, TiqueteDeEntrega, MAC,
-        Observaciones, ContratoFacturacion
+        Proyecto,
+        Estatus,
+        Contrato_Liberty,
+        CodigoClienteBlueSAT,
+        NombreContratoSolicitado,
+        TipoContratacion,
+        EstatusContrato,
+        CodigoCliente,
+        RazonSocial,
+        UbicacionFinal,
+        TiqueteDeEntrega,
+        MAC,
+        Observaciones,
+        ContratoFacturacion,
+        tipoServicio,
+        CantidadDeCajasColocadasRevify,
+        PrecioIPTVPrincipalRevify,
+        PrecioIPTVAdicionalRevify,
+        PrecioIPTVPrincipalLiberty,
+        PrecioIPTVAdicionalLiberty,
+        PreciodeConvertidorPrincipalLiberty,
+        PreciodeConvertidorAdicionalLiberty,
+        TotaldelContrato
     } = req.body;
 
     try {
@@ -419,8 +686,6 @@ app.put('/inventario/:serial', async (req, res) => {
             .input('Proyecto', sql.NVarChar, Proyecto)
             .input('Estatus', sql.NVarChar, Estatus)
             .input('Contrato_Liberty', sql.NVarChar, Contrato_Liberty)
-            .input('OrdenDeEntrega', sql.NVarChar, OrdenDeEntrega)
-            .input('FechaDeDespacho', sql.Date, FechaDeDespacho)
             .input('CodigoClienteBlueSAT', sql.NVarChar, CodigoClienteBlueSAT)
             .input('NombreContratoSolicitado', sql.NVarChar, NombreContratoSolicitado)
             .input('TipoContratacion', sql.NVarChar, TipoContratacion)
@@ -432,14 +697,21 @@ app.put('/inventario/:serial', async (req, res) => {
             .input('MAC', sql.NVarChar, MAC)
             .input('Observaciones', sql.NVarChar, Observaciones)
             .input('ContratoFacturacion', sql.NVarChar, ContratoFacturacion)
+            .input('tipoServicio', sql.NVarChar, tipoServicio)
+            .input('CantidadDeCajasColocadasRevify', sql.Int, CantidadDeCajasColocadasRevify)
+            .input('PrecioIPTVPrincipalRevify', sql.Decimal(18, 2), PrecioIPTVPrincipalRevify)
+            .input('PrecioIPTVAdicionalRevify', sql.Decimal(18, 2), PrecioIPTVAdicionalRevify)
+            .input('PrecioIPTVPrincipalLiberty', sql.Decimal(18, 2), PrecioIPTVPrincipalLiberty)
+            .input('PrecioIPTVAdicionalLiberty', sql.Decimal(18, 2), PrecioIPTVAdicionalLiberty)
+            .input('PreciodeConvertidorPrincipalLiberty', sql.Decimal(18, 2), PreciodeConvertidorPrincipalLiberty)
+            .input('PreciodeConvertidorAdicionalLiberty', sql.Decimal(18, 2), PreciodeConvertidorAdicionalLiberty)
+            .input('TotaldelContrato', sql.Decimal(18, 2), TotaldelContrato)
             .query(`
                 UPDATE InventarioIPTV
                 SET
                     Proyecto = @Proyecto,
                     Estatus = @Estatus,
                     Contrato_Liberty = @Contrato_Liberty,
-                    OrdenDeEntrega = @OrdenDeEntrega,
-                    FechaDeDespacho = @FechaDeDespacho,
                     CodigoClienteBlueSAT = @CodigoClienteBlueSAT,
                     NombreContratoSolicitado = @NombreContratoSolicitado,
                     TipoContratacion = @TipoContratacion,
@@ -450,7 +722,16 @@ app.put('/inventario/:serial', async (req, res) => {
                     TiqueteDeEntrega = @TiqueteDeEntrega,
                     MAC = @MAC,
                     Observaciones = @Observaciones,
-                    ContratoFacturacion = @ContratoFacturacion
+                    ContratoFacturacion = @ContratoFacturacion,
+                    tipoServicio = @tipoServicio,
+                    CantidadDeCajasColocadasRevify = @CantidadDeCajasColocadasRevify,
+                    PrecioIPTVPrincipalRevify = @PrecioIPTVPrincipalRevify,
+                    PrecioIPTVAdicionalRevify = @PrecioIPTVAdicionalRevify,
+                    PrecioIPTVPrincipalLiberty = @PrecioIPTVPrincipalLiberty,
+                    PrecioIPTVAdicionalLiberty = @PrecioIPTVAdicionalLiberty,
+                    PreciodeConvertidorPrincipalLiberty = @PreciodeConvertidorPrincipalLiberty,
+                    PreciodeConvertidorAdicionalLiberty = @PreciodeConvertidorAdicionalLiberty,
+                    TotaldelContrato = @TotaldelContrato
                 WHERE SERIAL = @Serial
             `);
         
@@ -592,6 +873,11 @@ app.get('/inventario/:serial', async (req, res) => {
 
 
 
+}).catch(error => {
+    console.error('Error al conectar a SQL Server:', error);
+});
+
+// Inicia el servidor
 app.listen(port, () => {
     console.log(`Servidor corriendo en el puerto ${port}`);
 });

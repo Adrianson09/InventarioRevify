@@ -6,8 +6,6 @@ const AddInventario = () => {
         Proyecto: '',
         Estatus: '',
         Contrato_Liberty: '',
-        OrdenDeEntrega: '',
-        FechaDeDespacho: '',
         CodigoClienteBlueSAT: '',
         NombreContratoSolicitado: '',
         TipoContratacion: '',
@@ -19,7 +17,16 @@ const AddInventario = () => {
         SERIAL: '',
         MAC: '',
         Observaciones: '',
-        ContratoFacturacion: ''
+        ContratoFacturacion: '',
+        tipoServicio: '',
+        CantidadDeCajasColocadasRevify: '',
+        PrecioIPTVPrincipalRevify: '',
+        PrecioIPTVAdicionalRevify: '',
+        PrecioIPTVPrincipalLiberty: '',
+        PrecioIPTVAdicionalLiberty: '',
+        PreciodeConvertidorPrincipalLiberty: '',
+        PreciodeConvertidorAdicionalLiberty: '',
+        TotaldelContrato: ''
     });
 
     const [error, setError] = useState(null);
@@ -37,17 +44,14 @@ const AddInventario = () => {
         e.preventDefault();
         try {
             await axios.post('http://localhost:3000/inventario', formData);
-            
             setSuccess('Registro agregado exitosamente');
             setError(null);
-    
+
             // Limpiar el formulario
             setFormData({
                 Proyecto: '',
                 Estatus: '',
                 Contrato_Liberty: '',
-                OrdenDeEntrega: '',
-                FechaDeDespacho: '',
                 CodigoClienteBlueSAT: '',
                 NombreContratoSolicitado: '',
                 TipoContratacion: '',
@@ -59,24 +63,34 @@ const AddInventario = () => {
                 SERIAL: '',
                 MAC: '',
                 Observaciones: '',
-                ContratoFacturacion: ''
+                ContratoFacturacion: '',
+                tipoServicio: '',
+                CantidadDeCajasColocadasRevify: '',
+                PrecioIPTVPrincipalRevify: '',
+                PrecioIPTVAdicionalRevify: '',
+                PrecioIPTVPrincipalLiberty: '',
+                PrecioIPTVAdicionalLiberty: '',
+                PreciodeConvertidorPrincipalLiberty: '',
+                PreciodeConvertidorAdicionalLiberty: '',
+                TotaldelContrato: ''
             });
-    
-            // Timeout para borrar el mensaje de éxito después de 3 segundos
+
+            // Timeout para borrar el mensaje de éxito
             setTimeout(() => {
                 setSuccess(null);
             }, 3000);
-    
+
         } catch (err) {
             setError('Error al agregar el registro.');
             setSuccess(null);
-    
-            // Timeout para borrar el mensaje de error después de 3 segundos
+
+            // Timeout para borrar el mensaje de error
             setTimeout(() => {
                 setError(null);
             }, 3000);
         }
     };
+
 
     return (
         <div className="container mx-auto p-6 bg-gray-900 text-white min-h-screen">
