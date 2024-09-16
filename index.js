@@ -872,6 +872,169 @@ app.get('/inventario/:serial', async (req, res) => {
 });
 
 
+// CLIENTES TELEFONOS : CONTABILIDAD
+
+/**clientes-telefonos:
+ * @swagger
+ * /clientes-telefonos:
+ *   get:
+ *     tags:
+ *       - Contabilidad
+ *     summary: Obtiene una lista de clientes con su información de contacto y proyecto
+ *     description: Recupera los campos CLIENTE, TELEFONO, PROYECTO, LOCAL y CONTRATO de la tabla CLIENTE_TELEFONO.
+ *     responses:
+ *       200:
+ *         description: Lista de clientes y teléfonos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   CLIENTE:
+ *                     type: string
+ *                     description: Nombre del cliente
+ *                   TELEFONO:
+ *                     type: string
+ *                     description: Teléfono del cliente
+ *                   PROYECTO:
+ *                     type: string
+ *                     description: Proyecto asignado al cliente
+ *                   LOCAL:
+ *                     type: string
+ *                     description: Local asociado al cliente
+ *                   CONTRATO:
+ *                     type: string
+ *                     description: Contrato del cliente
+ *       500:
+ *         description: Error al obtener los datos
+ */
+
+// Endpoint GET para obtener los clientes y teléfonos
+
+app.get('/clientes-telefonos', async (req, res) => {
+    try {
+      let pool = await sql.connect(dbConfig);
+      let result = await pool.request().query(`
+        SELECT CLIENTE, TELEFONO, PROYECTO, LOCAL, CONTRATO
+        FROM CLIENTE_TELEFONO
+      `);
+  
+      res.status(200).json(result.recordset);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send('Error en el servidor');
+    }
+  });
+
+
+  app.get('/clientes-telefonos/:telefono', async (req, res) => {
+    const telefono = req.params.telefono;
+  
+    try {
+      let pool = await sql.connect(dbConfig);
+      let result = await pool.request()
+        .input('TELEFONO', sql.NVarChar, telefono)
+        .query('SELECT * FROM CLIENTE_TELEFONO WHERE TELEFONO = @TELEFONO');
+  
+      if (result.recordset.length === 0) {
+        return res.status(404).json({ message: 'Cliente no encontrado' });
+      }
+  
+      res.status(200).json(result.recordset[0]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Error al obtener el cliente' });
+    }
+  });
+  
+  
+  
+  /** Actualiza los detalles de un cliente
+ * @swagger
+ * /clientes-telefonos/{telefono}:
+ *   put:
+ *     tags:
+ *       - Contabilidad
+ *     summary: Actualiza los detalles de un cliente basado en su número de teléfono
+ *     description: Actualiza los campos CLIENTE, PROYECTO, LOCAL y CONTRATO de la tabla CLIENTE_TELEFONO, excepto el TELEFONO que no se puede modificar.
+ *     parameters:
+ *       - in: path
+ *         name: telefono
+ *         required: true
+ *         description: Número de teléfono del cliente (llave primaria)
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               CLIENTE:
+ *                 type: string
+ *               PROYECTO:
+ *                 type: string
+ *               LOCAL:
+ *                 type: string
+ *               CONTRATO:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: El registro se ha actualizado correctamente
+ *       404:
+ *         description: Registro no encontrado
+ *       500:
+ *         description: Error al actualizar el registro
+ */
+
+// Endpoint PUT para modificar los clientes y teléfonos
+  app.put('/clientes-telefonos/:telefono', async (req, res) => {
+    const telefono = req.params.telefono;
+    const { CLIENTE, PROYECTO, LOCAL, CONTRATO } = req.body;
+  
+    try {
+      let pool = await sql.connect(dbConfig);
+  
+      // Comprobar si el registro existe antes de intentar actualizarlo
+      let checkExistence = await pool.request()
+        .input('TELEFONO', sql.NVarChar, telefono)
+        .query('SELECT TELEFONO FROM CLIENTE_TELEFONO WHERE TELEFONO = @TELEFONO');
+  
+      if (checkExistence.recordset.length === 0) {
+        return res.status(404).json({ message: 'Registro no encontrado' });
+      }
+  
+      // Actualizar los demás campos excepto TELEFONO
+      let result = await pool.request()
+        .input('TELEFONO', sql.NVarChar, telefono)
+        .input('CLIENTE', sql.NVarChar, CLIENTE)
+        .input('PROYECTO', sql.NVarChar, PROYECTO)
+        .input('LOCAL', sql.NVarChar, LOCAL)
+        .input('CONTRATO', sql.NVarChar, CONTRATO)
+        .query(`
+          UPDATE CLIENTE_TELEFONO
+          SET 
+            CLIENTE = @CLIENTE,
+            PROYECTO = @PROYECTO,
+            LOCAL = @LOCAL,
+            CONTRATO = @CONTRATO
+          WHERE TELEFONO = @TELEFONO
+        `);
+  
+      res.status(200).json({ message: 'Registro actualizado correctamente' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Error al actualizar el registro' });
+    }
+  });
+  
+
+
+  
+
 
 }).catch(error => {
     console.error('Error al conectar a SQL Server:', error);

@@ -11,6 +11,7 @@ import Login from './components/Login';
 import Register from './components/Register';
 import PrivateRoute from './components/PrivateRoute';
 import { AuthProvider } from './contexts/AuthContext';
+import ClientesTelefonos from './components/ClientesTelefonos';
 
 function App() {
   return (
@@ -23,7 +24,7 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route 
                 path="/" 
-                element={<PrivateRoute element={<InventarioList />} requiredRoles={['soporte', 'admin']} />} 
+                element={<PrivateRoute element={<InventarioList />} requiredRoles={['contabilidad', 'soporte', 'admin']} />} 
               />
               <Route 
                 path="/add" 
@@ -40,6 +41,10 @@ function App() {
               <Route 
                 path="/upload" 
                 element={<PrivateRoute element={<UploadFile />} requiredRoles={['admin']} />} 
+              />
+              <Route 
+                path="/telefonos" 
+                element={<PrivateRoute element={<ClientesTelefonos />} requiredRoles={['contabilidad', 'admin', 'soporte']} />} 
               />
             </Routes>
           </div>

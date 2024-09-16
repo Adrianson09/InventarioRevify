@@ -30,6 +30,8 @@ const Login = () => {
 
       // Redireccionar al usuario a la página principal tras el login exitoso
       navigate('/');
+      // Recargar la página para asegurarse de que el menú se actualice
+      window.location.reload();
     } catch (err) {
       setError('Error al iniciar sesión. Verifica tu correo electrónico y contraseña.');
     } finally {

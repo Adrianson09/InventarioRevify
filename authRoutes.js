@@ -28,7 +28,7 @@ router.post('/register', async (req, res) => {
             .input('nombre_usuario', sql.NVarChar, nombre_usuario)
             .input('email', sql.NVarChar, email)
             .input('password_hash', sql.NVarChar, hashedPassword)
-            .input('rol', sql.NVarChar, 'soporte') // Rol por defecto
+            .input('rol', sql.NVarChar, 'contabilidad') // Rol por defecto
             .query(`
                 INSERT INTO usuarioInventario (nombre_usuario, email, password_hash, rol)
                 VALUES (@nombre_usuario, @email, @password_hash, @rol)
@@ -96,7 +96,7 @@ const authorizeRoles = (...permittedRoles) => {
 };
 
 // Ruta protegida: Obtener inventario (acceso permitido solo a 'soporte' y 'admin')
-router.get('/', authenticateToken, authorizeRoles('soporte', 'admin'), async (req, res) => {
+router.get('/', authenticateToken, authorizeRoles('soporte', 'admin', 'contabilidad'), async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
         const result = await pool.request().query('SELECT * FROM InventarioIPTV');
