@@ -36,7 +36,7 @@ const UpdateInventario = () => {
     // Cargar el registro por su SERIAL
     const fetchRecord = async () => {
         try {
-            const response = await axios.get(`http://localhost:3000/inventario/${serial}`);
+            const response = await axios.get(`http://172.16.2.103:3000/inventario/${serial}`);
             setFormData(response.data); // Rellenar el formulario con los datos obtenidos
             setError(null);
         } catch (err) {
@@ -49,7 +49,7 @@ const UpdateInventario = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.put(`http://localhost:3000/inventario/${serial}`, formData);
+            await axios.put(`http://172.16.2.103:3000/inventario/${serial}`, formData);
             setSuccess('Registro actualizado exitosamente');
             setError(null);
     

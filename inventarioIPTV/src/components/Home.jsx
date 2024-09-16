@@ -4,7 +4,7 @@ const Home = () => {
   const [cajas, setCajas] = useState([]);
 
   useEffect(() => {
-    fetch('http://localhost:3000/cajasIPTV')
+    fetch('http://172.16.2.103:3000/cajasIPTV')
       .then(response => response.json())
       .then(data => setCajas(data))
       .catch(error => console.error('Error fetching cajas:', error));

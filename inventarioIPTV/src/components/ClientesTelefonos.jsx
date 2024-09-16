@@ -24,7 +24,7 @@ const ClientesTelefonos = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await axios.get('http://localhost:3000/clientes-telefonos');
+        const response = await axios.get('http://172.16.2.103:3000/clientes-telefonos');
         setClientes(response.data); // Almacena todos los datos en el estado
         setFilteredClientes(response.data); // Inicialmente no se filtra
         setLoading(false);
@@ -69,7 +69,7 @@ const ClientesTelefonos = () => {
 
   const handleEditClick = async (telefono) => {
     try {
-      const response = await axios.get(`http://localhost:3000/clientes-telefonos/${telefono}`);
+      const response = await axios.get(`http://172.16.2.103:3000/clientes-telefonos/${telefono}`);
       setEditingClient(telefono); // Guardar el teléfono del cliente que se está editando
       const data = response.data;
   
@@ -90,7 +90,7 @@ const ClientesTelefonos = () => {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`http://localhost:3000/clientes-telefonos/${editingClient}`, editForm);
+      await axios.put(`http://172.16.2.103:3000/clientes-telefonos/${editingClient}`, editForm);
       // Actualizar la lista de clientes tras la edición
       const updatedClientes = clientes.map((cliente) =>
         cliente.TELEFONO === editingClient ? { ...cliente, ...editForm } : cliente

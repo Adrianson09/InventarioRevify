@@ -43,7 +43,7 @@ const AddInventario = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.post('http://localhost:3000/inventario', formData);
+            await axios.post('http://172.16.2.103:3000/inventario', formData);
             setSuccess('Registro agregado exitosamente');
             setError(null);
 

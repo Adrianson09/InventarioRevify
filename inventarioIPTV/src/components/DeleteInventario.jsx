@@ -9,7 +9,7 @@ const DeleteInventario = () => {
     const handleDelete = async (e) => {
         e.preventDefault();
         try {
-            await axios.delete(`http://localhost:3000/inventario/${serial}`);
+            await axios.delete(`http://172.16.2.103:3000/inventario/${serial}`);
             setSuccess('Caja IPTV eliminada exitosamente');
             setError(null);
             setSerial(''); // Limpiar el campo de entrada

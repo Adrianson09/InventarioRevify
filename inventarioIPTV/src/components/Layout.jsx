@@ -16,7 +16,7 @@ const Layout = ({ children }) => {
   // Función para obtener la información del usuario
   const fetchUserData = async () => {
     try {
-      const response = await fetch('http://localhost:3000/auth/me', {
+      const response = await fetch('http://172.16.2.103:3000/auth/me', {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`, // Pasar el token en la cabecera
         },

@@ -11,7 +11,7 @@ const InventarioList = () => {
     useEffect(() => {
         const fetchInventario = async () => {
             try {
-                const response = await axios.get('http://localhost:3000/inventario');
+                const response = await axios.get('http://172.16.2.103:3000/inventario');
                 setInventario(response.data);
             } catch (err) {
                 setError('Error al obtener los datos del inventario. ' + err);

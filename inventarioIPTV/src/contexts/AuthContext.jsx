@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      const response = await axios.get('http://localhost:3000/auth/me', {
+      const response = await axios.get('http://172.16.2.103:3000/auth/me', {
         headers: {
           Authorization: `Bearer ${token}`, // Incluye el token en el encabezado
         },
